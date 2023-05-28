@@ -1,11 +1,97 @@
-import Head from 'next/head'
-import Image from 'next/image'
-import { Inter } from 'next/font/google'
-import styles from '@/styles/Home.module.css'
+import Head from "next/head";
+import Image from "next/image";
+import { Inter } from "next/font/google";
+import styles from "@/styles/Home.module.css";
+import "@appwrite.io/pink";
+import "@appwrite.io/pink-icons";
+import { Client, Databases, ID } from "appwrite";
+import { useEffect, useState } from "react";
+import LocationList from "@/components/LocationList";
 
-const inter = Inter({ subsets: ['latin'] })
+const inter = Inter({ subsets: ["latin"] });
 
-export default function Home() {
+export default function Home({ locations }) {
+  console.log(locations);
+
+  const [location, setLocation] = useState("");
+  const [cost, setCost] = useState(1);
+  const [totalCost, setTotalCost] = useState(0);
+
+  const [totalCostUpdated, setTotalCostUpdated] = useState(false);
+
+  useEffect(() => {
+    const updateTotalCost = () => {
+      const total = locations.documents
+        .map((location) => location.cost.amount)
+        .reduce((acc, car) => acc + car, 0);
+      setTotalCost(total);
+    };
+    
+    updateTotalCost();
+  }, [totalCostUpdated]);
+
+  const handleLocationName = (e) => {
+    setLocation(e.target.value);
+  };
+
+  const handgleCostChange = (e) => {
+    setCost(e.target.value);
+  };
+
+  const addLocation = async (e) => {
+    e.preventDefault();
+    const client = new Client();
+    const database = new Databases(client);
+
+    client
+      .setEndpoint(process.env.NEXT_PUBLIC_ENDPOINT)
+      .setProject(process.env.NEXT_PUBLIC_PROJECT);
+
+    const response = database.createDocument(
+      process.env.NEXT_PUBLIC_DATABASE,
+      process.env.NEXT_PUBLIC_COLLECTION_LOCATION,
+      ID.unique(),
+      {
+        name: location,
+        cost: { amount: cost },
+      }
+    );
+
+    response.then(function (res) {
+      console.log(res);
+      setTotalCostUpdated(!totalCostUpdated);
+      console.log(locations);
+
+      setCost(0);
+      setLocation("");
+    }),
+      function (error) {
+        console.log(error);
+      };
+  };
+
+  const deleteLocation = async (location) => {
+    const client = new Client();
+    const database = new Databases(client);
+
+    client
+      .setEndpoint(process.env.NEXT_PUBLIC_ENDPOINT)
+      .setProject(process.env.NEXT_PUBLIC_PROJECT);
+
+    const response = database.deleteDocument(
+      process.env.NEXT_PUBLIC_DATABASE,
+      process.env.NEXT_PUBLIC_COLLECTION_LOCATION,
+      location.$id
+    );
+    response.then(function (res) {
+      console.log(res);
+      setTotalCostUpdated(!totalCostUpdated);
+    }),
+      function (error) {
+        console.log(error);
+      };
+  };
+
   return (
     <>
       <Head>
@@ -14,101 +100,62 @@ export default function Home() {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
-      <main className={`${styles.main} ${inter.className}`}>
-        <div className={styles.description}>
-          <p>
-            Get started by editing&nbsp;
-            <code className={styles.code}>pages/index.js</code>
-          </p>
-          <div>
-            <a
-              href="https://vercel.com?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              By{' '}
-              <Image
-                src="/vercel.svg"
-                alt="Vercel Logo"
-                className={styles.vercelLogo}
-                width={100}
-                height={24}
-                priority
+      <main
+        className={`${styles.main} ${inter.className}`}
+        style={{ background: "white" }}
+      >
+        <div className="u-width-full-line">
+          <div className="" style={{ boxShadow: "hsl(var(--shadow-large))" }}>
+            <h3 className="is-center heading-level-3 ">
+              Travel Expense Management App
+            </h3>
+            <form onSubmit={addLocation} className="u-flex u-column-gap-24">
+              <input
+                onChange={handleLocationName}
+                value={location}
+                placeholder="Location"
+                className="u-max-width-250 u-min-height-100-percent u-max-width-250"
+                type="text"
+                required
               />
-            </a>
+
+              <input
+                onChange={handgleCostChange}
+                value={cost}
+                className="u-remove-input-number-buttons u-min-height-100-percent u-max-width-250"
+                type="number"
+                required
+              />
+
+              <button onClick={addLocation} className="button">
+                Submit
+              </button>
+            </form>
           </div>
-        </div>
 
-        <div className={styles.center}>
-          <Image
-            className={styles.logo}
-            src="/next.svg"
-            alt="Next.js Logo"
-            width={180}
-            height={37}
-            priority
-          />
-        </div>
-
-        <div className={styles.grid}>
-          <a
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            className={styles.card}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <h2>
-              Docs <span>-&gt;</span>
-            </h2>
-            <p>
-              Find in-depth information about Next.js features and&nbsp;API.
-            </p>
-          </a>
-
-          <a
-            href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            className={styles.card}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <h2>
-              Learn <span>-&gt;</span>
-            </h2>
-            <p>
-              Learn about Next.js in an interactive course with&nbsp;quizzes!
-            </p>
-          </a>
-
-          <a
-            href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            className={styles.card}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <h2>
-              Templates <span>-&gt;</span>
-            </h2>
-            <p>
-              Discover and deploy boilerplate example Next.js&nbsp;projects.
-            </p>
-          </a>
-
-          <a
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            className={styles.card}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <h2>
-              Deploy <span>-&gt;</span>
-            </h2>
-            <p>
-              Instantly deploy your Next.js site to a shareable URL
-              with&nbsp;Vercel.
-            </p>
-          </a>
+          <LocationList locations={locations} deleteLocation={deleteLocation} />
+          <h3 className="heading-level-3">Total Cost: ${totalCost}</h3>
         </div>
       </main>
     </>
-  )
+  );
+}
+
+export async function getServerSideProps(context) {
+  const client = new Client();
+
+  client
+    .setEndpoint(process.env.NEXT_PUBLIC_ENDPOINT)
+    .setProject(process.env.NEXT_PUBLIC_PROJECT);
+
+  const database = new Databases(client);
+
+  const locations = await database.listDocuments(
+    process.env.NEXT_PUBLIC_DATABASE,
+    process.env.NEXT_PUBLIC_COLLECTION_LOCATION
+  );
+
+  return {
+    props: { locations },
+  };
 }
