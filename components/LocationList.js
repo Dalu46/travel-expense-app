@@ -2,7 +2,7 @@ const LocationList = ({ locations, deleteLocation }) => {
   return (
     <div>
       <h2 className="heading-level-1">Locations</h2>
-      {locations.documents.map((location) => (
+      {locations.map((location) => (
         <div key={location.$id} className="card">
           {/* style={{ display: 'flex', justifyContent: 'space-between' } */}
           <ul className="list">

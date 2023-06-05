@@ -11,24 +11,53 @@ import LocationList from "@/components/LocationList";
 const inter = Inter({ subsets: ["latin"] });
 
 export default function Home({ locations }) {
-  console.log(locations);
-
   const [location, setLocation] = useState("");
   const [cost, setCost] = useState(1);
   const [totalCost, setTotalCost] = useState(0);
 
+  const [locationsToRender, setlocationsToRender] = useState(locations.documents);
+  // console.log(locationsToRender)
+
   const [totalCostUpdated, setTotalCostUpdated] = useState(false);
 
   useEffect(() => {
+    const subscription = async () => {
+      const client = new Client();
+      client
+        .setEndpoint(process.env.NEXT_PUBLIC_ENDPOINT)
+        .setProject(process.env.NEXT_PUBLIC_PROJECT);
+
+      // Subscribe to documents channel
+      client.subscribe(
+        `databases.${process.env.NEXT_PUBLIC_DATABASE}.collections.${process.env.NEXT_PUBLIC_COLLECTION_LOCATION}.documents`,
+        (response) => {
+          try {
+            if (response.events[0].includes("create")) {
+              setlocationsToRender([...locationsToRender, response.payload]);
+            } else {
+              const update = locationsToRender.filter((item) => {
+                return item.$id !== response.payload.$id;
+              });
+              console.log(update);
+              setlocationsToRender(update);
+            }
+          } catch (error) {
+            console.log(error);
+          }
+        }
+      );
+    };
+
     const updateTotalCost = () => {
-      const total = locations.documents
+      const total = locationsToRender
         .map((location) => location.cost.amount)
         .reduce((acc, car) => acc + car, 0);
       setTotalCost(total);
     };
-    
+
+    subscription();
     updateTotalCost();
-  }, [totalCostUpdated]);
+  }, [totalCostUpdated, locationsToRender]);
 
   const handleLocationName = (e) => {
     setLocation(e.target.value);
@@ -58,10 +87,9 @@ export default function Home({ locations }) {
     );
 
     response.then(function (res) {
-      console.log(res);
       setTotalCostUpdated(!totalCostUpdated);
-      console.log(locations);
-
+      // window.location.reload();
+      //set cost to zero and location to empty
       setCost(0);
       setLocation("");
     }),
@@ -133,7 +161,7 @@ export default function Home({ locations }) {
             </form>
           </div>
 
-          <LocationList locations={locations} deleteLocation={deleteLocation} />
+          <LocationList locations={locationsToRender} deleteLocation={deleteLocation} />
           <h3 className="heading-level-3">Total Cost: ${totalCost}</h3>
         </div>
       </main>
